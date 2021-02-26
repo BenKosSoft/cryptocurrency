@@ -10,7 +10,8 @@ import sys
 import argparse
 import hashlib
 from itertools import repeat, islice, cycle
-from multiprocessing import freeze_support, cpu_count, Pool
+from multiprocessing import freeze_support, Pool
+from psutil import cpu_count
 
 from chaining import PoW, TxBlockGen
 from signature import DSA
@@ -230,7 +231,7 @@ def mine():
             tx_block_file_name = file_name % i
             if os.path.exists(tx_block_file_name):
                 PoW.calculate_pow(tx_block_file_name, chain_file_name, pow_len, tx_len,
-                                  num_processes=num_processes, enable_gpu=cmd_args.gpu)
+                                  num_processes, cmd_args.gpu)
                 sys.stdout.write("#%d Proof of work is written/appended to %s\r" % (i, chain_file_name))
                 i = i + 1
             elif not cmd_args.no_generate:
@@ -440,7 +441,7 @@ if __name__ == '__main__':
     # override default configs with cmd cmd_args
     _config_override()
 
-    # ==================================================================================================================
+    # ================================================wor==================================================================
     # acquire global parameters
     tx_len = configs.getint('DEFAULT', 'tx_len')
     link_len = configs.getint('DEFAULT', 'link_len')
@@ -461,11 +462,8 @@ if __name__ == '__main__':
     chunk_size = configs.getint('USER', 'chunk_size')
     mine_count = float('inf') if configs.get('USER', 'mine_count') == 'infinite' \
         else configs.getint('USER', 'mine_count')
-    try:
-        num_processes = cpu_count() if configs.get('USER', 'num_processes') == 'all' \
-            else configs.getint('USER', 'num_processes')
-    except NotImplementedError:
-        num_processes = 4
+    num_processes = cpu_count(logical=False) or 4 if configs.get('USER', 'num_processes') == 'all' \
+        else configs.getint('USER', 'num_processes')
     # ==================================================================================================================
 
     cmd_args.func()
